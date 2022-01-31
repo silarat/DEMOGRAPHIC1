@@ -1,7 +1,7 @@
 getwd()
-currentwd <-"C:/Users/palmy/Documents/cambridge/gradschool/UW-Winter22/Demographic/exercise-03/data" 
+currentwd <-"//destination////" 
 setwd(currentwd)
-rmarkdown::render("C:/Users/palmy/Documents/cambridge/gradschool/UW-Winter22/Demographic/exercise-03/exercise.Rmd")
+rmarkdown::render("///destination////")
 
 q01dat <- readRDS("q01_data.rds")
 q02dat <- readRDS("q02_data.rds")
@@ -9,11 +9,11 @@ q05dat <- readRDS("q05_data.rds")
 q06dat <- readRDS("q06_data.rds")
 
 library(pacman)
-library(tidyverse) #for filter >%>
-library(stringr) #for str_detect
+library(tidyverse)
+library(stringr) 
 library(magrittr)
-library(plyr) #for round_any
-library(ggplot)
+library(plyr) 
+
 
 
 ## Calculate the crude death rate (CDR) by income level
