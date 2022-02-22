@@ -1,0 +1,77 @@
+library(pacman)
+library(tidyverse)
+library(plyr)
+library(magrittr) 
+library(knitr)
+library(systemfonts)
+library(vctrs)
+library(DT)
+install.packages("pivottabler")
+library(pivottabler)
+rm()
+
+rmarkdown::render("XXXXXXXX")
+
+q1 <- readRDS(url("XXXXXXX"))
+str(q1)
+#q1 construct a period multiple decrement table and interpret the results
+
+#find mx by adding up all causes
+q1 <- q1 %>% mutate(mx = mx_heart + mx_other)
+#construct the single decrement table first
+q1 <- q1 %>% mutate(nx = lead(x)-x, 
+                    nax = nx/2,
+                    nqx = ((nx * mx)/(1+(nx - nax)*mx)) %>% coalesce(1),
+                    npx = 1- nqx
+                      )
+l0 <- 100000
+lx <- l0
+x <- q1$x
+npx <- q1$npx
+####compose a for loop
+for (a in x[-length(x)]) {
+  l <- lx[which(x == a)] * npx[which(x == a)] # Calculate current survivors
+  lx <- c(lx, l) # Append current value to end of existing lx
+}
+q1$lx <- lx 
+
+q1 <- q1 %>% mutate(
+  ndx = lx * nqx,
+  nLx = case_when(
+    nqx != 1 ~ nx * lead(lx) +nax * ndx,
+    nqx == 1 ~ lx/mx
+  ),
+  Tx = rev(nLx) %>% coalesce(0) %>% cumsum() %>% rev(),
+  ex = Tx/lx
+)
+
+#compute probability of exit from cause H or O (Heart or Other)
+q1 <- q1 %>% mutate(nqx_H = nqx * (mx_heart/mx),
+                    nqx_O = nqx * (mx_other/mx))
+#ndxi = nqxi * lx, so we will compute number of decrements from cause i for each tenure group
+q1 <- q1 %>% mutate(ndx_H = nqx_H * lx,
+                    ndx_O = nqx_O * lx)
+
+#compute the number of persons aged x who will eventually exit due to cause i (nlxi)
+#nlxi = sum of ndxi for all age group above x (so its somehow resemble T0 in terms of calculations)
+#we can write out a function if there are many causes, so that we don't have to type everything out
+#sum_from_here <- function(x) {
+#  rev(x) %>% dplyr::coalesce(0) %>% cumsum() %>% rev()}
+#dat <- dat %>%
+ # mutate(lx_V = sum_from_here(ndx_V),
+ #               lx_I = sum_from_here(ndx_I))
+#but we will stick with the traditional coding for today
+q1 <- q1 %>% mutate(lx_H = rev(ndx_H) %>% coalesce(0) %>% cumsum() %>% rev(),
+                    lx_O = rev(ndx_O) %>% coalesce(0) %>% cumsum() %>% rev())
+
+q1 %>% select(c(1:13)) %>% select(-c(2:3)) %>% datatable(
+  rownames = FALSE,
+  filter = "top",
+  options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE)) %>% formatRound(columns = c("mx", "nax", "nqx", "npx", "lx", "ndx", "nLx", "Tx", "ex"), digits = 4)
+
+q1 %>% datatable(
+  rownames = FALSE,
+  filter = "top",
+  options = list(pageLength = 10, autoWidth = TRUE, scrollX = TRUE)) %>% formatRound(columns = 
+                                                                                       c("mx", "nax", "nqx", "npx", "lx", "ndx", "nLx", "Tx", "ex", 
+                                                                                         "mx_heart", "mx_other", "lx_H", "lx_O", "ndx_H", "ndx_O", "nqx_H", "nqx_O"), digits = 4)
